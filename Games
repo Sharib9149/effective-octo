@@ -1,0 +1,57 @@
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, CallbackContext
+import random
+
+# Game Data
+CREDITS = {}
+
+def start(update: Update, context: CallbackContext):
+    user_id = update.effective_user.id
+    if user_id not in CREDITS:
+        CREDITS[user_id] = 100  # Starting credits
+
+    message = (
+        f"🎰 Welcome to the Casino! 🎰\n"
+        f"You have {CREDITS[user_id]} credits.\n"
+        f"Use /play to spin the slot machine!"
+    )
+    update.message.reply_text(message)
+
+def play(update: Update, context: CallbackContext):
+    user_id = update.effective_user.id
+    if CREDITS[user_id] < 10:
+        update.message.reply_text("Not enough credits! Use /start to reset.")
+        return
+
+    CREDITS[user_id] -= 10  # Deduct bet
+    reels = ["🍒", "🍋", "🍊", "🍉", "⭐"]
+    result = [random.choice(reels) for _ in range(3)]
+
+    # Determine win/lose
+    if len(set(result)) == 1:  # All symbols match
+        CREDITS[user_id] += 50
+        outcome = "🎉 Jackpot! You won 50 credits!"
+    else:
+        outcome = "😢 You lost this round."
+
+    message = (
+        f"🎰 {' | '.join(result)} 🎰\n"
+        f"{outcome}\n"
+        f"You now have {CREDITS[user_id]} credits.\n"
+        f"Use /play to try again!"
+    )
+    update.message.reply_text(message)
+
+# Main Function
+def main():
+    updater = Updater("YOUR_BOT_TOKEN")
+    dp = updater.dispatcher
+
+    dp.add_handler(CommandHandler("start", start))
+    dp.add_handler(CommandHandler("play", play))
+
+    updater.start_polling()
+    updater.idle()
+
+if __name__ == "__main__":
+    main()
